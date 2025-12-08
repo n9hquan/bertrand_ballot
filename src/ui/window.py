@@ -1,26 +1,66 @@
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QPushButton, QSpinBox, QSlider, QProgressBar, QMessageBox
+    QLabel, QPushButton, QSpinBox, QSlider, QProgressBar,
+    QGroupBox
 )
 from PyQt6.QtCore import Qt, QTimer
-
 from .liveplot import LivePlot
 from src.core.ballot import theoretical_prob, run_single_sequence
-
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Bertrand Ballot Visualizer")
-        self.resize(900, 600)
+        self.resize(950, 620)
+
+        # Messenger-like stylesheet
+        self.setStyleSheet("""
+            QWidget {
+                font-size: 12px;
+                background: #ffffff;
+            }
+            QLabel {
+                color: #222;
+            }
+            QPushButton {
+                padding: 6px 12px;
+                background-color: #0084FF;
+                color: white;
+                border-radius: 6px;
+            }
+            QPushButton:disabled {
+                background-color: #aacfff;
+            }
+            QGroupBox {
+                margin-top: 10px;
+                padding: 10px;
+                border: 1px solid #d0d0d0;
+                border-radius: 8px;
+                font-weight: bold;
+                color: #333;
+            }
+            QProgressBar {
+                height: 20px;
+                border-radius: 4px;
+                background: #e6e6e6;
+            }
+            QProgressBar::chunk {
+                background-color: #0084FF;
+                border-radius: 4px;
+            }
+        """)
 
         main = QWidget()
         self.setCentralWidget(main)
-        layout = QVBoxLayout()
-        main.setLayout(layout)
+        layout = QVBoxLayout(main)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(10)
 
-        # Controls row
+        # ───────────────────────────────────
+        # Top control row
+        # ───────────────────────────────────
         ctrl = QHBoxLayout()
+        ctrl.setSpacing(12)
         layout.addLayout(ctrl)
 
         ctrl.addWidget(QLabel("A votes:"))
@@ -29,75 +69,86 @@ class MainWindow(QMainWindow):
         self.spin_a.setValue(7)
         ctrl.addWidget(self.spin_a)
 
+        ctrl.addSpacing(10)
+
         ctrl.addWidget(QLabel("B votes:"))
         self.spin_b = QSpinBox()
         self.spin_b.setRange(0, 999)
         self.spin_b.setValue(3)
         ctrl.addWidget(self.spin_b)
 
-        self.btn_run_one = QPushButton("Run Animation")
-        ctrl.addWidget(self.btn_run_one)
+        ctrl.addSpacing(15)
 
         ctrl.addWidget(QLabel("Speed:"))
         self.speed_slider = QSlider(Qt.Orientation.Horizontal)
         self.speed_slider.setRange(1, 100)
         self.speed_slider.setValue(50)
+        self.speed_slider.setFixedWidth(150)
         ctrl.addWidget(self.speed_slider)
-        
+
         self.speed_label = QLabel("50%")
-        self.speed_label.setMinimumWidth(35)
         ctrl.addWidget(self.speed_label)
-        self.speed_slider.valueChanged.connect(
-            lambda v: self.speed_label.setText(f"{v}%")
-        )
-        
+
+        ctrl.addStretch(1)
+
+        self.btn_run_one = QPushButton("Run")
+        ctrl.addWidget(self.btn_run_one)
+
         self.btn_stop = QPushButton("Stop")
         self.btn_stop.setEnabled(False)
         ctrl.addWidget(self.btn_stop)
 
-        # Single label: theoretical probability
-        stats = QHBoxLayout()
-        layout.addLayout(stats)
+        # ───────────────────────────────────
+        # Theoretical probability (single line)
+        # ───────────────────────────────────
         self.lbl_theo = QLabel("Theoretical P = -")
-        stats.addWidget(self.lbl_theo)
+        layout.addWidget(self.lbl_theo)
 
-        # Bars and counts
-        bars = QHBoxLayout()
-        layout.addLayout(bars)
-        left = QVBoxLayout()
-        right = QVBoxLayout()
-        bars.addLayout(left, stretch=1)
-        bars.addLayout(right, stretch=3)
+        # ───────────────────────────────────
+        # Group: Counts of A/B
+        # ───────────────────────────────────
+        grp = QGroupBox("Counts")
+        gbox = QVBoxLayout(grp)
+        gbox.setSpacing(6)
+        layout.addWidget(grp)
 
+        # A
         self.lbl_a_count = QLabel("A: 0")
-        left.addWidget(self.lbl_a_count)
+        gbox.addWidget(self.lbl_a_count)
+
         self.bar_a = QProgressBar()
-        left.addWidget(self.bar_a)
+        self.bar_a.setFixedHeight(20)
+        gbox.addWidget(self.bar_a)
 
+        # B
         self.lbl_b_count = QLabel("B: 0")
-        left.addWidget(self.lbl_b_count)
+        gbox.addWidget(self.lbl_b_count)
+
         self.bar_b = QProgressBar()
-        left.addWidget(self.bar_b)
+        self.bar_b.setFixedHeight(20)
+        gbox.addWidget(self.bar_b)
 
-        # Plot area
+        # ───────────────────────────────────
+        # Plot (big area)
+        # ───────────────────────────────────
         self.plot = LivePlot(self, width=6, height=4)
-        right.addWidget(self.plot)
+        layout.addWidget(self.plot, stretch=1)
 
-        # Timer
+        # Timer and remaining logic unchanged...
         self.timer = QTimer()
         self.timer.timeout.connect(self.animate_step)
 
-        # Button connection
         self.btn_run_one.clicked.connect(self.start_single_run)
+        self.speed_slider.valueChanged.connect(
+            lambda v: self.speed_label.setText(f"{v}%")
+        )
+        self.btn_stop.clicked.connect(self.stop_animation)
 
-        # State
         self.current_votes = []
         self.idx = 0
         self.a_count = 0
         self.b_count = 0
-        self.n_steps = 0
-        
-        self.btn_stop.clicked.connect(self.stop_animation)
+
 
     def update_theory_label(self):
         a = self.spin_a.value()
@@ -131,12 +182,10 @@ class MainWindow(QMainWindow):
 
         self.plot.reset(self.n_steps)
 
-        # compute delay: slider 1-100%, where 100% = fastest
         speed_percent = self.speed_slider.value()
         max_delay = 200
         interval_ms = max_delay - int((speed_percent / 100) * (max_delay - 1))
 
-        # IMPORTANT: stop old timer before starting new
         if self.timer.isActive():
             self.timer.stop()
 
