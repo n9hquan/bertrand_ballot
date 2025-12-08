@@ -1,16 +1,12 @@
 import random
 
 def theoretical_prob(a: int, b: int) -> float:
-    """Return theoretical Bertrand Ballot probability for a > b.
-    If a <= b, return 0.0.
-    """
-    if a <= b:
+    if a == b:
         return 0.0
-    return (a - b) / (a + b)
+    return abs(a - b) / (a + b)
 
 def run_single_sequence(a: int, b: int):
-    """Return a randomized sequence of 'A' and 'B' of length a+b.
-    """
+    # Return a randomized sequence of 'A' and 'B' of length a+b
     votes = ["A"] * a + ["B"] * b
     random.shuffle(votes)
     return votes

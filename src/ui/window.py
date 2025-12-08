@@ -13,7 +13,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Bertrand Ballot Visualizer")
         self.resize(950, 620)
 
-        # Messenger-like stylesheet
+        # Set stylesheet
         self.setStyleSheet("""
             QWidget {
                 font-size: 12px;
@@ -55,10 +55,6 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(main)
         layout.setContentsMargins(12, 12, 12, 12)
         layout.setSpacing(10)
-
-        # ───────────────────────────────────
-        # Top control row
-        # ───────────────────────────────────
         ctrl = QHBoxLayout()
         ctrl.setSpacing(12)
         layout.addLayout(ctrl)
@@ -98,15 +94,11 @@ class MainWindow(QMainWindow):
         self.btn_stop.setEnabled(False)
         ctrl.addWidget(self.btn_stop)
 
-        # ───────────────────────────────────
-        # Theoretical probability (single line)
-        # ───────────────────────────────────
-        self.lbl_theo = QLabel("Theoretical P = -")
+        # Probability 
+        self.lbl_theo = QLabel("P = ")
         layout.addWidget(self.lbl_theo)
 
-        # ───────────────────────────────────
-        # Group: Counts of A/B
-        # ───────────────────────────────────
+        # Counts of A/B
         grp = QGroupBox("Counts")
         gbox = QVBoxLayout(grp)
         gbox.setSpacing(6)
@@ -128,69 +120,50 @@ class MainWindow(QMainWindow):
         self.bar_b.setFixedHeight(20)
         gbox.addWidget(self.bar_b)
 
-        # ───────────────────────────────────
-        # Plot (big area)
-        # ───────────────────────────────────
+        # Plot
         self.plot = LivePlot(self, width=6, height=4)
         layout.addWidget(self.plot, stretch=1)
-
-        # Timer and remaining logic unchanged...
         self.timer = QTimer()
         self.timer.timeout.connect(self.animate_step)
-
         self.btn_run_one.clicked.connect(self.start_single_run)
         self.speed_slider.valueChanged.connect(
             lambda v: self.speed_label.setText(f"{v}%")
         )
         self.btn_stop.clicked.connect(self.stop_animation)
-
         self.current_votes = []
         self.idx = 0
         self.a_count = 0
         self.b_count = 0
 
-
     def update_theory_label(self):
         a = self.spin_a.value()
         b = self.spin_b.value()
         p = theoretical_prob(a, b)
-        self.lbl_theo.setText(f"Theoretical P = {p:.6f}")
+        self.lbl_theo.setText(f"P = {p:.2f}")
 
     def start_single_run(self):
         a = self.spin_a.value()
         b = self.spin_b.value()
-        if a <= b:
-            QMessageBox.warning(self, "Invalid", "Require a > b.")
-            return
-
         self.update_theory_label()
-
         self.current_votes = run_single_sequence(a, b)
         self.n_steps = len(self.current_votes)
         self.idx = 0
         self.a_count = 0
         self.b_count = 0
-
-        # Bars
         self.bar_a.setRange(0, self.n_steps)
         self.bar_b.setRange(0, self.n_steps)
         self.bar_a.setValue(0)
         self.bar_b.setValue(0)
-
         self.lbl_a_count.setText("A: 0")
         self.lbl_b_count.setText("B: 0")
-
         self.plot.reset(self.n_steps)
-
+        
         speed_percent = self.speed_slider.value()
         max_delay = 200
         interval_ms = max_delay - int((speed_percent / 100) * (max_delay - 1))
-
         if self.timer.isActive():
             self.timer.stop()
-
         self.timer.start(interval_ms)
-
         self.btn_run_one.setEnabled(False)
         self.btn_stop.setEnabled(True)
 
@@ -198,7 +171,7 @@ class MainWindow(QMainWindow):
         if self.idx >= self.n_steps:
             self.finish_animation()
             return
-
+        
         v = self.current_votes[self.idx]
         if v == 'A':
             self.a_count += 1
@@ -209,24 +182,20 @@ class MainWindow(QMainWindow):
         step_num = self.idx + 1
 
         self.plot.add_point(step_num, lead)
-
         self.bar_a.setValue(self.a_count)
         self.bar_b.setValue(self.b_count)
         self.lbl_a_count.setText(f"A: {self.a_count}")
         self.lbl_b_count.setText(f"B: {self.b_count}")
-
         self.idx += 1
 
     def finish_animation(self):
         if self.timer.isActive():
             self.timer.stop()
-
         self.btn_run_one.setEnabled(True)
         self.btn_stop.setEnabled(False)
         
     def stop_animation(self):
         if self.timer.isActive():
             self.timer.stop()
-
         self.btn_run_one.setEnabled(True)
         self.btn_stop.setEnabled(False)
