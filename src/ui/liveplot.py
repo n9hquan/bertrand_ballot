@@ -21,8 +21,9 @@ class LivePlot(FigureCanvas):
         super().__init__(fig)
         self.ax = fig.add_subplot(111)
         self.ax.set_xlabel("Ballots counted")
-        self.ax.set_ylabel("Lead (A - B)")
+        self.ax.set_ylabel("Lead")
         self.ax.axhline(0, color="gray", linewidth=0.8)
+        self.ax.title.set_text("Live Ballot Plot")
 
 
         # storage

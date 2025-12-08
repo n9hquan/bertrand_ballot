@@ -40,9 +40,16 @@ class MainWindow(QMainWindow):
 
         ctrl.addWidget(QLabel("Speed:"))
         self.speed_slider = QSlider(Qt.Orientation.Horizontal)
-        self.speed_slider.setRange(0, 100)
+        self.speed_slider.setRange(1, 100)
         self.speed_slider.setValue(50)
         ctrl.addWidget(self.speed_slider)
+        
+        self.speed_label = QLabel("50%")
+        self.speed_label.setMinimumWidth(35)
+        ctrl.addWidget(self.speed_label)
+        self.speed_slider.valueChanged.connect(
+            lambda v: self.speed_label.setText(f"{v}%")
+        )
         
         self.btn_stop = QPushButton("Stop")
         self.btn_stop.setEnabled(False)
@@ -124,10 +131,10 @@ class MainWindow(QMainWindow):
 
         self.plot.reset(self.n_steps)
 
-        # compute delay
+        # compute delay: slider 1-100%, where 100% = fastest
         speed_percent = self.speed_slider.value()
         max_delay = 200
-        interval_ms = 1 + int((speed_percent / 100) * (max_delay - 1))
+        interval_ms = max_delay - int((speed_percent / 100) * (max_delay - 1))
 
         # IMPORTANT: stop old timer before starting new
         if self.timer.isActive():
