@@ -37,7 +37,7 @@ class LivePlot(FigureCanvas):
         self.ax.set_ylim(-1, 1)
         
         self.fig = fig
-        self.tie_lines = []  # Store tie line artists
+        self.tie_lines = []
 
     def reset(self, n_steps: int):
         """Reset plot and start from (0, 0)"""

@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QSpinBox, QSlider, QProgressBar,
-    QGroupBox
+    QGroupBox, QMessageBox
 )
 from PyQt6.QtCore import Qt, QTimer
 from .liveplot import LivePlot
@@ -144,6 +144,9 @@ class MainWindow(QMainWindow):
     def start_single_run(self):
         a = self.spin_a.value()
         b = self.spin_b.value()
+        if (a==b):
+            QMessageBox.warning(self, "Invalid Input", "One must have more votes than another.")
+            return
         self.update_theory_label()
         self.current_votes = run_single_sequence(a, b)
         self.n_steps = len(self.current_votes)
